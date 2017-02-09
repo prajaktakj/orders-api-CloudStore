@@ -22,25 +22,26 @@ import com.ibm.ws.msdemo.rest.pojo.Order;
 //Mapped to /orders via web.xml
 @Path("/orders")
 public class OrdersService {
-	
+
 	private UserTransaction utx;
 	private EntityManager em;
-	
+
 	public OrdersService(){
 		utx = getUserTransaction();
 		em = getEm();
 	}
 	@Context UriInfo uriInfo;
-	
+
 	//GET all orders
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response get() {
 			List<Order> list = em.createQuery("SELECT t FROM Order t", Order.class).getResultList();
 			String json = list.toString();
+			System.out.println ("Response json : "+ json);
 			return Response.ok(json).build();
 	}
-	
+
 	//GET a specific order
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
@@ -53,15 +54,19 @@ public class OrdersService {
 			order = em.find(Order.class, id);
 			utx.commit();
 		} catch (Exception e) {
+			System.out.println ("Something went wrong. Sending INTERNAL_SERVER_ERROR message.");
 			e.printStackTrace();
 			return Response.status(javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR).build();
-		} 
-		if (order != null)
+		}
+		if (order != null){
+			System.out.println ("Looks like a valid order with id "+id+". Sending it in the response.");
 			return Response.ok(order.toString()).build();
-		else
+		} else {
+			System.out.println ("Order with id "+id+" NOT_FOUND.");
 			return Response.status(javax.ws.rs.core.Response.Status.NOT_FOUND).build();
+		}
 	}
-	
+
 	//new order
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -71,10 +76,11 @@ public class OrdersService {
 			utx.begin();
 			em.persist(order);
 			utx.commit();
-			
+
+			System.out.println ("Creating the order now.");
 			return Response.status(201).entity(String.valueOf(order.getId())).build();
 		} catch (Exception e) {
-			e.printStackTrace();			
+			e.printStackTrace();
 			return Response.status(javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR).build();
 		} finally {
 			try {
@@ -88,17 +94,17 @@ public class OrdersService {
 
 
 	}
-	
-	// There are two ways of obtaining the connection information for some services in Java 
-	
+
+	// There are two ways of obtaining the connection information for some services in Java
+
 	// Method 1: Auto-configuration and JNDI
-	// The Liberty buildpack automatically generates server.xml configuration 
-	// stanzas for the SQL Database service which contain the credentials needed to 
-	// connect to the service. The buildpack generates a JNDI name following  
-	// the convention of "jdbc/<service_name>" where the <service_name> is the 
-	// name of the bound service. 
-	// Below we'll do a JNDI lookup for the EntityManager whose persistence 
-	// context is defined in web.xml. It references a persistence unit defined 
+	// The Liberty buildpack automatically generates server.xml configuration
+	// stanzas for the SQL Database service which contain the credentials needed to
+	// connect to the service. The buildpack generates a JNDI name following
+	// the convention of "jdbc/<service_name>" where the <service_name> is the
+	// name of the bound service.
+	// Below we'll do a JNDI lookup for the EntityManager whose persistence
+	// context is defined in web.xml. It references a persistence unit defined
 	// in persistence.xml. In these XML files you'll see the "jdbc/<service name>"
 	// JNDI name used.
 
@@ -114,14 +120,14 @@ public class OrdersService {
 	}
 
 	// Method 2: Parsing VCAP_SERVICES environment variable
-    // The VCAP_SERVICES environment variable contains all the credentials of 
-	// services bound to this application. You can parse it to obtain the information 
+    // The VCAP_SERVICES environment variable contains all the credentials of
+	// services bound to this application. You can parse it to obtain the information
 	// needed to connect to the SQL Database service. SQL Database is a service
 	// that the Liberty buildpack auto-configures as described above, so parsing
 	// VCAP_SERVICES is not a best practice.
-	
+
 	// see HelloResource.getInformation() for an example
-	
+
 	private UserTransaction getUserTransaction() {
 		InitialContext ic;
 		try {
